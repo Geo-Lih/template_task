@@ -11,7 +11,7 @@ from docx.shared import Cm
 from document_setup import document_setup
 
 # YOUR FILE PATH
-FILE_PATH = '/home/georgii/Downloads/шаблон заяви.xlsx'
+FILE_PATH = '/home/georgii/Downloads/шаблон заяви (1).xlsx'
 
 
 def build_template(grouped_data):
@@ -38,8 +38,10 @@ def build_template(grouped_data):
     normal_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
     normal_style.paragraph_format.first_line_indent = Cm(1)
 
-    list_number_style = doc.styles['List Number']
-    list_number_style.paragraph_format.first_line_indent = Cm(2)
+    normal_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+
+    list_number_style: _ParagraphStyle = doc.styles['List Number']
+    list_number_style.paragraph_format.left_indent = Cm(1.9 + 0.63)
 
     # ----------------------------------------------------CONTENT----------------------------------------------------
 
@@ -92,11 +94,10 @@ def build_template(grouped_data):
     p.add_run('\n2А, оф. 602').italic = True
     p.add_run('\n')
 
-    doc.add_paragraph('', style='Normal')
+    p = doc.add_paragraph('', style='Normal')
 
     # ----------------------------------------------------STATEMENT----------------------------------------------------
 
-    p = doc.add_paragraph('', style='Normal')
     p.add_run('ЗАЯВА').bold = True
     run = p.add_run('\nпро зупинення вчинення виконавчих дій')
     run.font.bold = True
@@ -148,16 +149,13 @@ def build_template(grouped_data):
     p.add_run('Про результати розгляду даної заяви повідомити заявника за електронною адресою:', )
     doc.add_paragraph('', style='Normal')
 
-    p = doc.add_paragraph(f'Рєєстр боржників та виконавчих проваджень відкритих у ПВ {executor}', style='List Number')
-    p.paragraph_format.left_indent = Cm(2)
+    doc.add_paragraph('Додаток:', style='Normal')
+    doc.add_paragraph(f'Рєєстр боржників та виконавчих проваджень відкритих у ПВ {executor}', style='List Number')
 
-    p = doc.add_paragraph('Докази відправлення в суд заяв про заміну сторони у виконавчому провадженні.',
+    doc.add_paragraph('Докази відправлення в суд заяв про заміну сторони у виконавчому провадженні.',
                           style='List Number')
-    p.paragraph_format.left_indent = Cm(2)
 
-    p = doc.add_paragraph('Витяг з ЄДРПОУ ТОВ «ДЕБТ ФОРС»', style='List Number')
-    p.paragraph_format.left_indent = Cm(2)
-    doc.add_paragraph('', style='Normal')
+    doc.add_paragraph('Витяг з ЄДРПОУ ТОВ «ДЕБТ ФОРС»', style='List Number')
 
     doc = add_director_signature(doc, 'Олександр КУЗЬМЕНКО')
     doc.add_paragraph('', style='Normal')
@@ -169,19 +167,19 @@ def build_template(grouped_data):
     p.add_run('від «__» ___.2023 р.').bold = True
     p.paragraph_format.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
     doc.add_paragraph('', style='Normal')
-
     # ----------------------------------------------------DEBTOR-TABLE--------------------------------------------------
 
-    table = doc.add_table(rows=debtor_count + 1, cols=5)
-    table.style = 'Table Grid'
-    table.columns[0].width = Cm(0.889)
-    table.columns[1].width = Cm(4.902)
-    table.columns[2].width = Cm(2.464)
-    table.columns[3].width = Cm(6.322)
-    table.columns[4].width = Cm(2.870)
-    table.rows[0].height = Cm(1.5)
+    table = doc.add_table(rows=debtor_count + 1, cols=5, style='Table Grid')
+
     headers = ['№', 'ПІБ Боржника', '№ АСВП', 'Суд до якого подана заява про заміну сторони у виконавчому провадженні',
                'Дата подачі заяви']
+
+    for i, size in enumerate([Cm(0.889), Cm(4.902), Cm(2.464), Cm(6.322), Cm(2.870)]):
+        for cell in table.columns[i].cells:
+            cell.width = size
+    # set row heights
+    for i in range(debtor_count + 1):
+        table.rows[i].height = Cm(0.48)
 
     for col, header in enumerate(headers):
         cell: _Cell = table.rows[0].cells[col]
@@ -190,31 +188,28 @@ def build_template(grouped_data):
         p.paragraph_format.first_line_indent = Cm(0)
         p.add_run(header).bold = True
 
-    row = 1
-    for key, value_list in grouped_data.items():
-        for entry in value_list:
-            if row >= debtor_count + 1:
-                break
+    counter = 1  # Initialize the counter
+    for value_list in grouped_data.values():
+        for i, row in enumerate(value_list):
+            i += 1
+            asvp, pib, sud, date = row
+            formatted_date = date.strftime('%d/%m/%Y')
+            table.cell(i, 0).text = str(counter)  # Add numeration to the first column
+            table.cell(i, 1).text = pib
+            table.cell(i, 2).text = str(asvp)
+            table.cell(i, 3).text = sud
+            table.cell(i, 4).text = formatted_date
+            print(formatted_date)
 
-            table.rows[row].cells[0].text = str(row)
-            table.rows[row].cells[1].text = entry[1]
-            table.rows[row].cells[2].text = str(entry[0])
-            table.rows[row].cells[3].text = entry[2]
-            table.rows[row].cells[4].text = str(entry[3])
+            # Set alignment for each cell in the row
+            for cell in table.rows[i].cells:
+                cell.paragraphs[0].paragraph_format.alignment = WD_TABLE_ALIGNMENT.CENTER
 
-            for col in range(5):
-                cell = table.rows[row].cells[col]
+            counter += 1
+        doc.add_paragraph('', style='Normal')
 
-                p = cell.paragraphs[0]
-                p.paragraph_format.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                p.paragraph_format.first_line_indent = Cm(0)
-                p.paragraph_format.space_after = Pt(0)
-
-            row += 1
-
-    doc.add_paragraph('', style='Normal')
-    doc.add_paragraph('', style='Normal')
-    doc = add_director_signature(doc, 'Олександр КУЗЬМЕНКО')
+        doc.add_paragraph('', style='Normal')
+        doc = add_director_signature(doc, 'Олександр КУЗЬМЕНКО')
 
     return doc
 
