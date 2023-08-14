@@ -41,7 +41,7 @@ def build_template(grouped_data):
     normal_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
     list_number_style: _ParagraphStyle = doc.styles['List Number']
-    list_number_style.paragraph_format.left_indent = Cm(1.9 + 0.63)
+    list_number_style.paragraph_format.left_indent = Cm(2)
 
     # ----------------------------------------------------CONTENT----------------------------------------------------
 
@@ -149,7 +149,8 @@ def build_template(grouped_data):
     p.add_run('Про результати розгляду даної заяви повідомити заявника за електронною адресою:', )
     doc.add_paragraph('', style='Normal')
 
-    doc.add_paragraph('Додаток:', style='Normal')
+    p = doc.add_paragraph('Додатки:', style='Normal')
+    p.paragraph_format.first_line_indent = Cm(1.4)
     doc.add_paragraph(f'Рєєстр боржників та виконавчих проваджень відкритих у ПВ {executor}', style='List Number')
 
     doc.add_paragraph('Докази відправлення в суд заяв про заміну сторони у виконавчому провадженні.',
@@ -193,7 +194,7 @@ def build_template(grouped_data):
         for i, row in enumerate(value_list):
             i += 1
             asvp, pib, sud, date = row
-            formatted_date = date.strftime('%d/%m/%Y')
+            formatted_date = date.strftime('%d.%m.%Y')
             table.cell(i, 0).text = str(counter)  # Add numeration to the first column
             table.cell(i, 1).text = pib
             table.cell(i, 2).text = str(asvp)
@@ -204,6 +205,7 @@ def build_template(grouped_data):
             # Set alignment for each cell in the row
             for cell in table.rows[i].cells:
                 cell.paragraphs[0].paragraph_format.alignment = WD_TABLE_ALIGNMENT.CENTER
+                cell.paragraphs[0].paragraph_format.first_line_indent = Cm(0)
 
             counter += 1
         doc.add_paragraph('', style='Normal')
